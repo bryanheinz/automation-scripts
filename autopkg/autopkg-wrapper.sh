@@ -81,7 +81,7 @@ else
         # there are differences from a "Nothing downloaded, packaged or imported" run... might be an update or an error
         $logger "sending autopkg log"
         /usr/bin/mail -s "autopkg log" ${mail_recipient}    < /tmp/autopkg.out
-        $logger "sent autopkg log to {$mail_recipient}, `wc -l /tmp/autopkg.out | awk '{ print $1 }'` lines in log"
+        $logger "sent autopkg log to {$mail_recipient}, $(wc -l /tmp/autopkg.out | awk '{ print $1 }') lines in log"
     else
         $logger "autopkg did nothing, so not sending log"
     fi
