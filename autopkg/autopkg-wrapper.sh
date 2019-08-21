@@ -65,7 +65,7 @@ else
     # default is to just run autopkg and email log if something changed from normal
     
     # read the recipe list file
-    recipe_list_file=$(cat "${user_home_dir}"/Documents/autopkg/recipe_list.txt)
+    recipe_list_file=$(cat "${user_home_dir/Documents/autopkg/recipe_list.txt")
     # combine the recipe list file with the hard-coded recipe list
     recipe_list="${recipe_list} ${recipe_list_file}"
     
