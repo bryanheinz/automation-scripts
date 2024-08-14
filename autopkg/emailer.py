@@ -2,10 +2,11 @@
 
 import smtplib
 from email.message import EmailMessage
+from sys import argv
 
 # TODO: generalize
-TO_ADDR = 'tickets@example.com'
-FROM_ADDR = 'autopkg@example.com'
+TO_ADDR = argv[0]
+FROM_ADDR = argv[1]
 SUBJECT = 'autopkg log'
 RELAY_ADDR = 'relay.example.com'
 
