@@ -5,8 +5,20 @@
 # adjust the following variables for your particular configuration
 # you should manually run the script with the initialize option if you change the recipe list, since that will change the output.
 recipe_list=""
-mail_recipient="you@yourdomain.net"
+mail_recipient="tickets@example.com"
 autopkg_user="autopkg"
+
+# define file locations
+# folder path to store autopkg-wrapper files
+autopkg_wrapper_dir="/opt/autopkg/automation-scripts"
+# text file with a list of recipes (easier than the above recipe_list)
+recipe_list_file="${autopkg_wrapper_dir}/recipe_list.txt"
+# persistent file path to store AutoPkg output for diffing
+autopkg_output_file="${autopkg_wrapper_dir}/autopkg.out"
+# temporary file path to store AutoPkg output for diffing
+autopkg_tmp_file="/private/tmp/autopkg.out"
+
+emailer="${autopkg_wrapper_dir}/autopkg/emailer.py"
 
 # don't change anything below this line
 
@@ -25,19 +37,19 @@ elif [ "${1}" == "initialize" ]; then
     $logger "starting autopkg to initialize a new default output log"
     
     # make sure autopkg folder exists in autopkg_user's Documents folder
-    if [ ! -d "${user_home_dir}/Documents/autopkg" ]; then
-        /bin/mkdir -p "${user_home_dir}/Documents/autopkg"
+    if [ ! -d "${autopkg_wrapper_dir}" ]; then
+        /bin/mkdir -p "${autopkg_wrapper_dir}"
     fi
     
     # make sure recipe list file exists
-    if [ ! -f "${user_home_dir}/Documents/autopkg/recipe_list.txt" ]; then
-        echo "MakeCatalogs.munki" >> "${user_home_dir}/Documents/autopkg/recipe_list.txt"
+    if [ ! -f "${recipe_list_file}" ]; then
+        echo "MakeCatalogs.munki" >> "${recipe_list_file}"
     fi
     
     # read the recipe list file
-    recipe_list_file=$(cat "${user_home_dir}/Documents/autopkg/recipe_list.txt")
+    recipe_list_contents=$(cat "${recipe_list_file}")
     # combine the recipe list file with the hard-coded recipe list
-    recipe_list="${recipe_list} ${recipe_list_file}"
+    recipe_list="${recipe_list} ${recipe_list_contents}"
     
     echo "recipe list: ${recipe_list}"
     echo "autopkg user: ${autopkg_user}"
@@ -49,15 +61,15 @@ elif [ "${1}" == "initialize" ]; then
     /usr/local/bin/autopkg run -v ${recipe_list} 2>&1
     
     $logger "autopkg initial run to saved log location"
-    echo "for this autopkg run, output will not be shown, but rather saved to default log location (${user_home_dir}/Documents/autopkg/autopkg.out"
-    /usr/local/bin/autopkg run ${recipe_list} 2>&1 > "${user_home_dir}/Documents/autopkg/autopkg.out"
+    echo "for this autopkg run, output will not be shown, but rather saved to default log location (${autopkg_output_file})"
+    /usr/local/bin/autopkg run ${recipe_list} 2>&1 > "${autopkg_output_file}"
     
     $logger "finished autopkg"
-elif [ ! -f "${user_home_dir}/Documents/autopkg/autopkg.out" ]; then
+elif [ ! -f "${autopkg_output_file}" ]; then
     # default log doesn't exist, so tell user to run this script in initialization mode and exit
     echo "ERROR: default log does not exist, please run this script with initialize argument to initialize the log"
     exit -1
-elif [ ! -f "${user_home_dir}/Documents/autopkg/recipe_list.txt" ]; then
+elif [ ! -f "${recipe_list_file}" ]; then
     # default recipe doesn't exist, so tell user to run this script in initialization mode and exit
         echo "ERROR: default recipe list does not exist, please run this script with initialize argument to initialize the recipe list"
         exit -1
@@ -65,24 +77,29 @@ else
     # default is to just run autopkg and email log if something changed from normal
     
     # read the recipe list file
-    recipe_list_file=$(cat "${user_home_dir}/Documents/autopkg/recipe_list.txt")
+    recipe_list_contents=$(cat "${recipe_list_file}")
     # combine the recipe list file with the hard-coded recipe list
-    recipe_list="${recipe_list} ${recipe_list_file}"
+    recipe_list="${recipe_list} ${recipe_list_contents}"
     
     $logger "starting autopkg"
+    echo "starting autopkg"
     /usr/local/bin/autopkg repo-update all
-    /usr/local/bin/autopkg run ${recipe_list} 2>&1 > /tmp/autopkg.out
+    /usr/local/bin/autopkg run ${recipe_list} 2>&1 > ${autopkg_tmp_file}
     
     $logger "finished autopkg"
+    echo "finished autopkg"
     
     # check output against the saved log and if differences exist, send current log to specified recipient
-    log_diff=$(diff /tmp/autopkg.out "${user_home_dir}/Documents/autopkg/autopkg.out")
+    log_diff=$(diff "$autopkg_tmp_file" "$autopkg_output_file")
     if [ "$log_diff" != "" ]; then
+        echo "emailing log."
         # there are differences from a "Nothing downloaded, packaged or imported" run... might be an update or an error
         $logger "sending autopkg log"
-        /usr/bin/mail -s "autopkg log" ${mail_recipient}    < /tmp/autopkg.out
-        $logger "sent autopkg log to {$mail_recipient}, $(wc -l /tmp/autopkg.out | awk '{ print $1 }') lines in log"
+        # email the log using a custom Python SMTP email script.
+        python3 $emailer
+        $logger "sent autopkg log to {$mail_recipient}, $(wc -l "$autopkg_tmp_file" | awk '{ print $1 }') lines in log"
     else
+        echo "not emailing log."
         $logger "autopkg did nothing, so not sending log"
     fi
 fi
