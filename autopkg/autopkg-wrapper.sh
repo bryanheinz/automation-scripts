@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 # autopkg automation script which, when run with no arguments, checks current run's output against a default output and sends the output to a user if there are differences
 
@@ -33,18 +33,18 @@ if [[ ! -d "$autopkg_wrapper_custom" ]]; then
 fi
 
 # run autopkg
-if [ "${1}" == "help" ]; then
+if [[ "${1}" == "help" ]]; then
     # show some help with regards to initialization option
     echo "usage: ${0} [initialize]"
     echo "(initializes a new default log for notification checking)"
     exit 0
-elif [ "${1}" == "initialize" ]; then
+elif [[ "${1}" == "initialize" ]]; then
     # initialize default log for automated run to check against for notification
     # if things have changed
     $logger "starting autopkg to initialize a new default output log"
     
     # make sure recipe list file exists
-    if [ ! -f "${recipe_list_file}" ]; then
+    if [[ ! -f "${recipe_list_file}" ]]; then
         echo "MakeCatalogs.munki" >> "${recipe_list_file}"
     fi
     
@@ -62,12 +62,12 @@ elif [ "${1}" == "initialize" ]; then
         2>&1 > "${autopkg_output_file}"
     
     $logger "finished autopkg"
-elif [ ! -f "${autopkg_output_file}" ]; then
+elif [[ ! -f "${autopkg_output_file}" ]]; then
     # default log doesn't exist, so tell user to run this script in
     # initialization mode and exit
     echo "ERROR: default log does not exist, please run this script with initialize argument to initialize the log"
     exit 1
-elif [ ! -f "${recipe_list_file}" ]; then
+elif [[ ! -f "${recipe_list_file}" ]]; then
     # default recipe doesn't exist, so tell user to run this script in initialization mode and exit
     echo "ERROR: default recipe list does not exist, please run this script with initialize argument to initialize the recipe list"
     exit 1
@@ -86,7 +86,7 @@ else
     # check output against the saved log and if differences exist, send current
     # log to specified recipient
     log_diff=$(/usr/bin/diff "$autopkg_tmp_file" "$autopkg_output_file")
-    if [ "$log_diff" != "" ]; then
+    if [[ "$log_diff" != "" ]]; then
         echo "emailing log."
         # there are differences from a "Nothing downloaded, packaged or
         # imported" run... might be an update or an error
