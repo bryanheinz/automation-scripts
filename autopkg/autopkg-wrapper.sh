@@ -48,24 +48,23 @@ elif [ "${1}" == "initialize" ]; then
         echo "MakeCatalogs.munki" >> "${recipe_list_file}"
     fi
     
-    # combine the recipe list file with the hard-coded recipe list
-    recipe_list=$(cat "${recipe_list_file}")
-    
-    echo "recipe list: ${recipe_list}"
+    echo "recipe list: $(cat $recipe_list_file)"
     
     # run autopkg twice, once to get any updates and the second to get a log
     # indicating nothing changed
     $logger "autopkg initial run to temporary log location"
     echo "for this autopkg run, output will be shown"
-    /usr/local/bin/autopkg run -v ${recipe_list} 2>&1
+    /usr/local/bin/autopkg run -v --recipe-list "$recipe_list_file" 2>&1
     
     $logger "autopkg initial run to saved log location"
     echo "for this autopkg run, output will not be shown, but rather saved to default log location (${autopkg_output_file})"
-    /usr/local/bin/autopkg run ${recipe_list} 2>&1 > "${autopkg_output_file}"
+    /usr/local/bin/autopkg run --recipe-list "$recipe_list_file" \
+        2>&1 > "${autopkg_output_file}"
     
     $logger "finished autopkg"
 elif [ ! -f "${autopkg_output_file}" ]; then
-    # default log doesn't exist, so tell user to run this script in initialization mode and exit
+    # default log doesn't exist, so tell user to run this script in
+    # initialization mode and exit
     echo "ERROR: default log does not exist, please run this script with initialize argument to initialize the log"
     exit 1
 elif [ ! -f "${recipe_list_file}" ]; then
@@ -75,27 +74,27 @@ elif [ ! -f "${recipe_list_file}" ]; then
 else
     # default is to just run autopkg and email log if something changed from normal
     
-    # read the recipe list file
-    recipe_list=$(cat "${recipe_list_file}")
-    
     $logger "starting autopkg"
     echo "starting autopkg"
     /usr/local/bin/autopkg repo-update all
-    /usr/local/bin/autopkg run ${recipe_list} 2>&1 > ${autopkg_tmp_file}
+    /usr/local/bin/autopkg run --recipe-list "$recipe_list_file" \
+        2>&1 > ${autopkg_tmp_file}
     
     $logger "finished autopkg"
     echo "finished autopkg"
     
-    # check output against the saved log and if differences exist, send current log to specified recipient
-    log_diff=$(diff "$autopkg_tmp_file" "$autopkg_output_file")
+    # check output against the saved log and if differences exist, send current
+    # log to specified recipient
+    log_diff=$(/usr/bin/diff "$autopkg_tmp_file" "$autopkg_output_file")
     if [ "$log_diff" != "" ]; then
         echo "emailing log."
-        # there are differences from a "Nothing downloaded, packaged or imported" run... might be an update or an error
+        # there are differences from a "Nothing downloaded, packaged or
+        # imported" run... might be an update or an error
         $logger "sending autopkg log"
         # email the log using a custom Python SMTP email script.
         # arg1 == TO address, arg2 == FROM address
         python3 $emailer $mail_to $mail_from
-        $logger "sent autopkg log to {$mail_recipient}, $(wc -l "$autopkg_tmp_file" | awk '{ print $1 }') lines in log"
+        $logger "sent autopkg log to ${mail_to}, $(/usr/bin/wc -l "$autopkg_tmp_file" | /usr/bin/awk '{ print $1 }') lines in log"
     else
         echo "not emailing log."
         $logger "autopkg did nothing, so not sending log"
