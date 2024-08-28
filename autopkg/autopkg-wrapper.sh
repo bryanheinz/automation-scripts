@@ -19,7 +19,7 @@ autopkg_output_file="${autopkg_wrapper_custom}/autopkg.out"
 # temporary file path to store AutoPkg output for diffing
 autopkg_tmp_file="/private/tmp/autopkg.out"
 # script path for emailing the results
-emailer="${autopkg_wrapper_root}/autopkg/emailer.py"
+email_script="${autopkg_wrapper_root}/autopkg/emailer.py"
 
 # don't change anything below this line #
 
@@ -94,7 +94,7 @@ else
         logger "emailing autopkg log"
         # email the log using a custom Python SMTP email script.
         # arg1 == TO address, arg2 == FROM address
-        python3 $emailer $mail_to $mail_from
+        python3 $email_script $mail_to $mail_from
         logger "sent autopkg log to ${mail_to}, $(/usr/bin/wc -l "$autopkg_tmp_file" | /usr/bin/awk '{ print $1 }') lines in log"
     else
         logger "no autopkg updates. not sending a log."
