@@ -3,16 +3,18 @@
 import smtplib
 from email.message import EmailMessage
 from sys import argv
+import pathlib
 
-# TODO: generalize
-TO_ADDR = argv[0]
-FROM_ADDR = argv[1]
+TO_ADDR = argv[1]
+FROM_ADDR = argv[2]
 SUBJECT = 'autopkg log'
 RELAY_ADDR = 'relay.example.com'
 
-AUTOPKG_LOG = '/private/tmp/autopkg.out'
+AUTOPKG_LOG = pathlib.Path('/private/tmp/autopkg.out')
 
 def main():
+    if not AUTOPKG_LOG.exists():
+        raise Exception(f"Missing {AUTOPKG_LOG}")
     with open(AUTOPKG_LOG, 'r', encoding='utf-8') as fh:
         log = fh.read()
     msg = EmailMessage()
